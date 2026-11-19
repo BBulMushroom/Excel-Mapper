@@ -1,8 +1,8 @@
 # Excel Mapper
 
-서로 다른 양식의 엑셀을 연결·비교하고, 승인한 변경만 수정본으로 저장하는 **Windows 데스크톱 프로그램**입니다. `ExcelReview.exe` 한 파일로 실행하며 웹 브라우저·서버·외부 AI API를 사용하지 않습니다. 현재는 네이티브 테스트판입니다.
+서로 다른 양식의 엑셀을 연결·비교하고, 승인한 변경만 수정본으로 저장하는 **Windows 데스크톱 프로그램**입니다. `ExcelMapper.exe` 한 파일로 실행하며 웹 브라우저·서버·외부 AI API를 사용하지 않습니다. 현재 버전은 1.000입니다.
 
-- 최신 EXE는 저장소의 Releases와 GitHub Actions(`Build Windows native test`) 결과에서 받습니다.
+- EXE는 저장소의 Releases에서 받습니다.
 - 사용법·범위: [docs/NATIVE_TEST.md](docs/NATIVE_TEST.md), 릴리스 이력: [docs/NATIVE_RELEASE_NOTES.md](docs/NATIVE_RELEASE_NOTES.md)
 - 작업 상태·결정 사항: [CONTEXT.md](CONTEXT.md), 요청 목록: [docs/BACKLOG.md](docs/BACKLOG.md)
 
@@ -77,7 +77,7 @@ python desktop_entry.py
 
 ## 지원 범위와 제한
 
-- XLSX·XLSM·XLS·CSV를 지원합니다. 병합셀, 빈·중복 열 제목은 비교 대상에서 지원하지 않습니다.
+- XLSX·XLSM·XLS·CSV를 지원합니다. 병합셀은 읽기와 행 추가·삭제를 지원하지만 병합된 칸의 값 수정 저장은 지원하지 않습니다. 빈·중복 열 제목은 지원하지 않습니다.
 - 앞뒤 공백을 제외하고 숫자 1과 문자 "1"을 같게 비교합니다. 문자 "001"은 별개로 보존됩니다.
 - 앱은 수식을 계산하지 않습니다. 일반 복사는 실제 수식을 유지하고 상대참조를 이동합니다. 값만 복사는 비교파일에 저장된 계산값을 사용하며 계산값이 없으면 저장을 차단합니다.
 - 수식이 있는 파일의 행 삭제, 수식이 있는 시트의 정렬, Excel 표(Table)가 있는 시트의 행 추가·삭제·정렬은 차단합니다. openpyxl이 임의의 수식 참조를 안전하게 다시 쓰지 못하기 때문입니다.
