@@ -1,0 +1,7 @@
+# No Streamlit, browser engine or web server in the native application.
+PySide6-Essentials==6.8.3
+openpyxl==3.1.5
+# openpyxl drops pictures from a workbook when Pillow is missing, so the frozen app must ship it.
+pillow==12.3.0
+xlrd==2.0.2
+tzdata==2025.2

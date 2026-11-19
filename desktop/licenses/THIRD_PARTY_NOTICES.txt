@@ -1,0 +1,22 @@
+Excel Mapper Native test build
+
+This program uses unmodified Qt for Python / PySide6 Essentials 6.8.3 and
+Shiboken6 (LGPL v3), openpyxl 3.1.5 (MIT), xlrd 2.0.2 (BSD), Python 3.12
+(PSF License), and the PyInstaller bootloader (GPL with its distribution exception).
+tzdata 2025.2 supplies the IANA time zone database (Apache-2.0 package; database public domain).
+License texts for LGPL/GPL, openpyxl and xlrd accompany this notice.
+Noto Sans KR is bundled under the SIL Open Font License 1.1 (included).
+Qt third-party components retain their respective licenses.
+
+Application source and reproducible packaging instructions:
+https://github.com/BBulMushroom/ai-excel-compare-project
+You may modify/rebuild this program to relink or replace the LGPL libraries.
+No restriction is imposed on reverse engineering for debugging such modifications.
+This notice does not assign a new license to the application source.
+
+Qt / PySide6 corresponding upstream sources and license details:
+https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.8.3-src/
+https://code.qt.io/cgit/qt/qtbase.git/tree/?h=v6.8.3
+https://doc.qt.io/qt-6/licenses-used-in-qt.html
+https://www.python.org/psf/license/
+https://pyinstaller.org/en/stable/license.html

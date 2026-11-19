@@ -1,0 +1,73 @@
+name: Publish verified native test
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Windows build run
+        required: true
+      source_sha:
+        description: Exact verified source commit
+        required: true
+      version:
+        description: Version (0.xxx test prerelease, 1.000+ official release)
+        required: true
+        default: '0.5.0'
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NATIVE_RUN: ${{ inputs.run_id }}
+      NATIVE_SHA: ${{ inputs.source_sha }}
+      NATIVE_VERSION: ${{ inputs.version }}
+      NATIVE_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check verified source
+        run: |
+          python - <<'PY'
+          import json,os,subprocess,re
+          run=os.environ['NATIVE_RUN']
+          assert run.isdigit()
+          assert re.fullmatch(r'[0-9a-f]{40}',os.environ['NATIVE_SHA'])
+          assert re.fullmatch(r'\d+\.\d{3}',os.environ['NATIVE_VERSION'])
+          report=json.loads(subprocess.check_output(['gh','api',f"repos/{os.environ['NATIVE_REPO']}/actions/runs/{run}"]))
+          assert report['conclusion']=='success'
+          assert report['head_sha']==os.environ['NATIVE_SHA']
+          assert report['path']=='.github/workflows/windows-desktop.yml'
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          name: ExcelMapper-Windows-x64
+          path: native/
+      - name: Check binary and report
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,struct
+          root=Path('native');data=(root/'ExcelMapper.exe').read_bytes()
+          assert hashlib.sha256(data).hexdigest()==(root/'SHA256.txt').read_text().split()[0]
+          pe=struct.unpack_from('<I',data,0x3c)[0]
+          assert data[:2]==b'MZ' and data[pe:pe+4]==b'PE\0\0' and struct.unpack_from('<H',data,pe+4)[0]==0x8664
+          report=json.loads((root/'windows-smoke.json').read_text(encoding='utf-8'))
+          assert report['status']=='passed' and report['frozen'] and 'bundled-korean-font' in report['checks']
+          PY
+      - name: Attach verified artifacts and publish release
+        run: |
+          # 0.xxx = test builds (prerelease, tag native-test-v0.xxx); 1.000 and later = official releases (tag v1.000, marked Latest).
+          case "$NATIVE_VERSION" in
+            0.*) TAG="native-test-v$NATIVE_VERSION"; KIND="--prerelease" ;;
+            *)   TAG="v$NATIVE_VERSION"; KIND="--latest" ;;
+          esac
+          if gh release view "$TAG" --repo "$NATIVE_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" native/ExcelMapper.exe native/windows-smoke.png native/windows-smoke.json native/SHA256.txt --repo "$NATIVE_REPO" --clobber
+            gh release edit "$TAG" --repo "$NATIVE_REPO" --draft=false $KIND
+          else
+            gh release create "$TAG" native/ExcelMapper.exe native/windows-smoke.png native/windows-smoke.json native/SHA256.txt --repo "$NATIVE_REPO" --target "$NATIVE_SHA" $KIND --title "Excel Mapper $NATIVE_VERSION" --notes-file docs/NATIVE_RELEASE_NOTES.md
+          fi

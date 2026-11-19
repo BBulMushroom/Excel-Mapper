@@ -1,0 +1,69 @@
+name: Build Windows native test
+on:
+  workflow_dispatch:
+  push:
+    branches: ['codex/native-test-*']
+concurrency:
+  group: native-windows-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+          cache: pip
+          cache-dependency-path: requirements-desktop.txt
+      - name: Install native build requirements
+        run: python -m pip install -r requirements-desktop.txt pyinstaller==6.12.0 pytest==9.2.0
+      - name: Native model and workbook integration tests
+        run: python -m pytest -vv -s tests/test_desktop.py tests/test_desktop_v03.py tests/test_desktop_v04.py
+        timeout-minutes: 3
+      - name: Build single executable
+        run: >-
+          pyi-makespec --onefile --windowed
+          --name ExcelMapper --icon desktop/icons/app.ico --version-file desktop/version_info.txt --add-data "desktop/licenses:desktop/licenses" --collect-data tzdata
+          --add-data "desktop/fonts/NotoSansKR-Regular.ttf:desktop/fonts"
+          --add-data "sample_data:sample_data" --add-data "desktop/previews:desktop/previews" --add-data "desktop/icons:desktop/icons"
+          --exclude-module streamlit --exclude-module pandas
+          --exclude-module PySide6.QtWebEngineCore --exclude-module PySide6.QtWebEngineWidgets
+          --exclude-module tkinter desktop_entry.py
+      - name: Freeze trimmed native package
+        run: python tools/package_native.py
+      - name: Verify packaged executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $exe = Start-Process -FilePath .\dist\ExcelMapper.exe -ArgumentList '--smoke-test artifacts\windows-smoke.json' -PassThru -Wait
+          if ($exe.ExitCode -ne 0) { Get-Content artifacts\windows-smoke.json -ErrorAction SilentlyContinue; throw "EXE self-test failed: $($exe.ExitCode)" }
+          $report = Get-Content artifacts\windows-smoke.json -Raw | ConvertFrom-Json
+          if ($report.status -ne 'passed' -or -not $report.frozen) { throw 'Packaged native test did not pass' }
+          $info = (Get-Item .\dist\ExcelMapper.exe).VersionInfo
+          if ($info.ProductName -ne 'Excel Mapper' -or $info.ProductVersion -notmatch '^[0-9]+\.[0-9]{3}$') { throw "File properties missing: $($info.ProductName) $($info.ProductVersion)" }
+          Copy-Item dist\ExcelMapper.exe artifacts\ExcelMapper.exe
+          (Get-FileHash artifacts\ExcelMapper.exe -Algorithm SHA256).Hash.ToLower() + '  ExcelMapper.exe' | Out-File -Encoding ascii artifacts\SHA256.txt
+          Get-Content artifacts\windows-smoke.json
+      - name: Verify command line mode of the packaged executable
+        shell: pwsh
+        run: |
+          python -c "import openpyxl; a=openpyxl.Workbook(); w=a.active; w.title='자료'; [w.append(r) for r in (['코드','수량','비고'],['k1',1,'m'],['k2',2,'n'])]; a.save('artifacts/cli-old.xlsx'); b=openpyxl.Workbook(); v=b.active; v.title='자료'; [v.append(r) for r in (['코드','수량'],['k1',9],['k2',2])]; b.save('artifacts/cli-new.xlsx')"
+          $cli = Start-Process -FilePath .\dist\ExcelMapper.exe -ArgumentList '--compare artifacts\cli-old.xlsx artifacts\cli-new.xlsx --mode row --out artifacts\cli-result.xlsx --report artifacts\cli-report.json' -PassThru -Wait
+          if ($cli.ExitCode -ne 0) { Get-Content artifacts\cli-report.json -ErrorAction SilentlyContinue; throw "CLI failed: $($cli.ExitCode)" }
+          $report = Get-Content artifacts\cli-report.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          if (-not $report.ok -or $report.stages[0].counts.'수정' -ne 1 -or -not (Test-Path artifacts\cli-result.xlsx)) { throw 'CLI report mismatch' }
+          python -c "import openpyxl; ws=openpyxl.load_workbook('artifacts/cli-result.xlsx')['자료']; assert ws['B2'].value==9 and ws['C2'].value is None, [c.value for c in ws[2]]"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ExcelMapper-Windows-x64
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 1

@@ -1,0 +1,1 @@
+Source: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill (MIT, v2.15.0). Installed as a project skill; the ${CLAUDE_PLUGIN_ROOT} path prefix in SKILL.md was changed to a project-relative path.

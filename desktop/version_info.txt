@@ -1,0 +1,16 @@
+# UTF-8
+# Windows file properties of ExcelMapper.exe (kept in step with desktop/version.py by tests/test_branding.py).
+VSVersionInfo(
+  ffi=FixedFileInfo(filevers=(1,0,0,0),prodvers=(1,0,0,0),mask=0x3f,flags=0x0,OS=0x40004,fileType=0x1,subtype=0x0,date=(0,0)),
+  kids=[
+    StringFileInfo([StringTable('041204b0',[
+      StringStruct('CompanyName','Excel Mapper'),
+      StringStruct('FileDescription','Excel Mapper - 엑셀 비교·병합'),
+      StringStruct('FileVersion','1.000'),
+      StringStruct('InternalName','ExcelMapper'),
+      StringStruct('OriginalFilename','ExcelMapper.exe'),
+      StringStruct('ProductName','Excel Mapper'),
+      StringStruct('ProductVersion','1.000')])]),
+    VarFileInfo([VarStruct('Translation',[1042,1200])])
+  ]
+)
